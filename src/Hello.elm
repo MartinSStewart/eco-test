@@ -6,6 +6,7 @@ import Eco.File
 import Eco.IO.Error exposing (IOError(..))
 import Eco.Process
 import Image
+import Image.Advanced
 import Platform
 import Task
 
@@ -34,9 +35,16 @@ init _ =
     , Eco.File.getCwd
         |> Task.mapError (\_ -> FileNotFound "")
         |> Task.andThen (\path -> Eco.File.readBytes (path ++ "/outline-guy-sit-frame-1.png"))
-        |> Task.map
+        |> Task.andThen
             (\bytes ->
-                Image.decode bytes
+                case Image.decode bytes of
+                    Just image ->
+                        Image.Advanced.map (\pixel -> pixel // 2) image
+                            |> Image.toPng
+                            |> Eco.File.writeBytes "/outline-guy-sit-frame-2.png"
+
+                    Nothing ->
+                        Eco.Console.write Eco.Console.stderr "Couldn't parse image" |> Task.mapError (\_ -> FileNotFound "")
             )
         |> Task.andThen (\_ -> Eco.Process.exit Eco.Process.ExitSuccess |> Task.mapError (\_ -> FileNotFound ""))
         |> Task.attempt (\_ -> Exited)
